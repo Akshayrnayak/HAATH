@@ -1,0 +1,31 @@
+{
+  "trained_at": "2026-03-24T22:08:59.807243",
+  "model_type": "Bidirectional LSTM",
+  "architecture": "BiLSTM(128) \u2192 LSTM(256) \u2192 Dense(128) \u2192 Dense(64) \u2192 Softmax",
+  "accuracy": 1.0,
+  "classes": [
+    "COME",
+    "DOCTOR",
+    "EMERGENCY",
+    "FOOD",
+    "GO",
+    "HELLO",
+    "HELP",
+    "NO",
+    "PLEASE",
+    "SORRY",
+    "STOP",
+    "THANK_YOU",
+    "WASHROOM",
+    "WATER",
+    "YES"
+  ],
+  "n_classes": 15,
+  "sequence_length": 30,
+  "n_features": 63,
+  "total_params": 766095,
+  "train_samples": 4800,
+  "test_samples": 1200,
+  "best_val_acc": 1.0,
+  "epochs_run": 46
+}

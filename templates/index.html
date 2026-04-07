@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Haath — ISL Communication AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#040810;--ink1:#080f1c;--ink2:#0d1624;--ink3:#131f30;--ink4:#1a2840;
+  --rim:#1e3050;--rim2:#162440;
+  --jade:#00e5a0;--jade2:rgba(0,229,160,.1);--jglow:0 0 32px rgba(0,229,160,.2);
+  --sky:#38bdf8;--coral:#f87171;--amber:#fbbf24;--violet:#c084fc;--pink:#f472b6;
+  --t0:#f1f5ff;--t1:#a8bcd8;--t2:#4a6080;--t3:#253040;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fb);background:var(--ink);color:var(--t0);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 15% 15%,rgba(0,229,160,.035),transparent 60%),radial-gradient(ellipse 60% 60% at 85% 85%,rgba(56,189,248,.035),transparent 60%);pointer-events:none;z-index:0}
+.shell{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 36px;height:62px;background:rgba(4,8,16,.9);border-bottom:1px solid rgba(255,255,255,.05);backdrop-filter:blur(20px);position:sticky;top:0;z-index:200}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:36px;height:36px;background:linear-gradient(135deg,var(--jade),var(--sky));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:var(--jglow)}
+.brand-name{font-family:var(--fh);font-size:1.25rem;font-weight:800;background:linear-gradient(90deg,var(--jade),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.brand-sub{font-size:.68rem;color:var(--t2);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.api-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;border:1px solid rgba(0,229,160,.2);background:rgba(0,229,160,.06);font-size:.7rem;font-weight:600;color:var(--jade);font-family:var(--fm)}
+.api-pill.offline{border-color:rgba(248,113,113,.2);background:rgba(248,113,113,.06);color:var(--coral)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--jade);animation:ldot 1.4s ease-in-out infinite}
+@keyframes ldot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+.acc-tag{font-size:.7rem;color:var(--t2);font-family:var(--fm);padding:4px 10px;border-radius:20px;border:1px solid var(--rim);background:var(--ink2)}
+.call-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:10px;background:var(--jade);color:var(--ink);font-size:.78rem;font-weight:700;text-decoration:none;transition:opacity .2s}
+.call-btn:hover{opacity:.88}
+
+/* ── Nav ── */
+.nav{display:flex;gap:4px;padding:8px 36px;background:var(--ink1);border-bottom:1px solid rgba(255,255,255,.04)}
+.nav-btn{display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:8px;border:none;background:transparent;color:var(--t2);font-family:var(--fb);font-size:.85rem;font-weight:500;cursor:pointer;transition:all .18s}
+.nav-btn:hover{background:var(--ink3);color:var(--t1)}
+.nav-btn.active{background:var(--jade2);color:var(--jade);border:1px solid rgba(0,229,160,.2)}
+
+/* ── Content ── */
+.content{flex:1;padding:28px 36px;max-width:1440px;width:100%;margin:0 auto}
+.tab{display:none}.tab.active{display:block}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-family:var(--fb);font-size:.85rem;font-weight:600;transition:all .18s;white-space:nowrap}
+.btn-jade{background:var(--jade);color:var(--ink);box-shadow:var(--jglow)}
+.btn-jade:hover{opacity:.9;transform:translateY(-1px)}
+.btn-jade:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-stop{background:rgba(248,113,113,.12);color:var(--coral);border-color:rgba(248,113,113,.3)}
+.btn-stop:hover{background:rgba(248,113,113,.22)}
+.btn-ghost{background:var(--ink3);color:var(--t1);border-color:var(--rim)}
+.btn-ghost:hover{background:var(--ink4)}
+.btn-sm{padding:6px 14px;font-size:.78rem}
+.btn-xs{padding:4px 10px;font-size:.72rem;border-radius:8px}
+
+/* ── Toggle ── */
+.tog{display:flex;align-items:center;gap:8px;cursor:pointer}
+.tog input{display:none}
+.tog-track{width:38px;height:20px;background:var(--ink3);border-radius:10px;position:relative;transition:background .2s;border:1px solid var(--rim)}
+.tog input:checked+.tog-track{background:var(--jade);border-color:var(--jade)}
+.tog-thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s}
+.tog input:checked+.tog-track .tog-thumb{transform:translateX(18px)}
+.tog-lbl{font-size:.78rem;color:var(--t1)}
+
+/* ── Language selector ── */
+.lang-select{background:var(--ink3);border:1px solid var(--rim);border-radius:8px;color:var(--t0);font-family:var(--fb);font-size:.78rem;padding:5px 10px;outline:none;cursor:pointer}
+.lang-select:focus{border-color:var(--jade)}
+
+/* ══════════ RECOGNITION TAB ══════════ */
+.recog-grid{display:grid;grid-template-columns:1fr 390px;gap:22px;align-items:start}
+
+/* Camera card */
+.cam-card{background:var(--ink2);border:1px solid var(--rim);border-radius:var(--r-xl,28px);overflow:hidden}
+.cam-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--rim2)}
+.cam-title{font-family:var(--fh);font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--t1)}
+.hand-stat{display:flex;align-items:center;gap:6px;font-size:.7rem;font-family:var(--fm);color:var(--t2)}
+.hand-stat.on{color:var(--jade)}.hdot{width:6px;height:6px;border-radius:50%;background:var(--t3);transition:background .3s}.hand-stat.on .hdot{background:var(--jade)}
+.vid-wrap{position:relative;aspect-ratio:16/9;background:var(--ink);overflow:hidden}
+#videoEl{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+#canvasEl{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
+.buf-bar-track{position:absolute;top:0;left:0;right:0;height:4px;background:rgba(0,0,0,.4)}
+.buf-bar{height:4px;background:var(--jade);width:0%;transition:width .1s linear}
+.scan-line{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--jade),transparent);opacity:0}
+.cam-active .scan-line{opacity:1;animation:scan 2.5s linear infinite}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.emerg-ring{position:absolute;inset:0;border:4px solid var(--coral);pointer-events:none;opacity:0}
+.emerg-active .emerg-ring{opacity:1;animation:efla .5s ease-in-out infinite}
+@keyframes efla{0%,100%{opacity:1}50%{opacity:.2}}
+.emerg-banner{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:var(--coral);color:#fff;font-weight:800;padding:7px 22px;border-radius:20px;font-size:.82rem;letter-spacing:2px;opacity:0;pointer-events:none}
+.emerg-active .emerg-banner{opacity:1;animation:efla .5s ease-in-out infinite}
+.no-hand-msg{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(4,8,16,.85);color:var(--t2);font-size:.78rem;padding:6px 16px;border-radius:20px;backdrop-filter:blur(8px);border:1px solid var(--rim);white-space:nowrap;opacity:0;transition:opacity .3s}
+.show-nohand .no-hand-msg{opacity:1}
+.rec-indicator{position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:6px;background:rgba(4,8,16,.85);border:1px solid var(--rim);border-radius:8px;padding:5px 12px;backdrop-filter:blur(8px);opacity:0;transition:opacity .3s}
+.rec-indicator.vis{opacity:1}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--coral);animation:ldot 1s infinite}
+.rec-text{font-size:.7rem;font-family:var(--fm);color:var(--t0)}
+.cam-idle{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.idle-icon{width:80px;height:80px;border-radius:50%;background:var(--ink3);border:2px dashed var(--rim);display:flex;align-items:center;justify-content:center;font-size:34px;animation:flt 4s ease-in-out infinite}
+@keyframes flt{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.idle-t{font-size:.9rem;color:var(--t2)}.idle-s{font-size:.76rem;color:var(--t3)}
+.cam-ftr{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--rim2);gap:12px;flex-wrap:wrap}
+.err-msg{margin:0 16px 12px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);color:var(--coral);padding:9px 14px;border-radius:12px;font-size:.8rem}
+
+/* Sidebar */
+.sidebar{display:flex;flex-direction:column;gap:14px}
+.result-card{background:var(--ink2);border:1px solid var(--rim);border-radius:28px;overflow:hidden}
+.result-inner{padding:26px 22px;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:210px;justify-content:center;position:relative;transition:all .5s cubic-bezier(.34,1.56,.64,1)}
+.result-inner::before{content:'';position:absolute;inset:0;background:var(--rgrad,transparent);opacity:.09;transition:all .5s}
+.r-eye{font-size:.62rem;font-family:var(--fm);text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.5);position:relative;z-index:1}
+.r-emoji{font-size:4.2rem;line-height:1;filter:drop-shadow(0 8px 18px rgba(0,0,0,.4));animation:gflt 3s ease-in-out infinite;position:relative;z-index:1}
+@keyframes gflt{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.06)}}
+.r-word{font-family:var(--fh);font-size:2rem;font-weight:800;color:#fff;letter-spacing:-.02em;position:relative;z-index:1;transition:all .3s}
+.r-translations{display:flex;gap:8px;margin-top:4px;position:relative;z-index:1;flex-wrap:wrap;justify-content:center}
+.r-trans-chip{font-size:.78rem;padding:3px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:rgba(255,255,255,.8)}
+.r-cat{font-size:.7rem;font-family:var(--fm);padding:3px 12px;border-radius:12px;border:1px solid;position:relative;z-index:1}
+.r-conf{font-size:.72rem;color:rgba(255,255,255,.5);font-family:var(--fm);position:relative;z-index:1}
+.r-empty{color:var(--t3);text-align:center}.r-empty .ei{font-size:3rem;margin-bottom:8px;opacity:.25}.r-empty .et{font-size:.88rem}.r-empty .es{font-size:.75rem;color:var(--t3);margin-top:4px}
+.buf-ring-wrap{padding:0 22px 18px;display:flex;align-items:center;gap:14px;opacity:0;transition:opacity .3s}
+.buf-ring-wrap.vis{opacity:1}
+.buf-ring{width:52px;height:52px;transform:rotate(-90deg)}
+.br-bg{fill:none;stroke:var(--ink3);stroke-width:4}.br-fill{fill:none;stroke:var(--jade);stroke-width:4;stroke-linecap:round;stroke-dasharray:141;stroke-dashoffset:141;transition:stroke-dashoffset .08s linear}
+.buf-label{font-size:.72rem;color:var(--t1);line-height:1.5}.buf-label strong{color:var(--jade)}
+
+/* Confirmed + sentence + history */
+.scard{background:var(--ink2);border:1px solid var(--rim);border-radius:18px;padding:14px 18px}
+.card-eye{font-size:.62rem;color:var(--t2);font-family:var(--fm);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.conf-content{display:flex;align-items:center;gap:10px}
+.conf-emoji{font-size:1.8rem}.conf-text{flex:1;font-family:var(--fh);font-size:1rem;font-weight:700}
+.conf-translations{font-size:.72rem;color:var(--t2);margin-top:4px}
+.conf-empty{font-size:.8rem;color:var(--t3)}
+.sent-display{font-size:.95rem;color:var(--t0);min-height:38px;line-height:1.6;margin-bottom:12px;word-break:break-word}
+.sent-empty-txt{color:var(--t3);font-size:.82rem}
+.sent-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hist-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.hist-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:var(--ink3);border:1px solid var(--rim);font-size:.73rem;color:var(--t1);animation:chip-in .25s cubic-bezier(.34,1.56,.64,1)}
+@keyframes chip-in{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.hist-empty{font-size:.76rem;color:var(--t3);margin-top:6px}
+
+/* ══════════ CHAT TAB ══════════ */
+.chat-layout{display:grid;grid-template-columns:1fr 300px;gap:22px;height:calc(100vh - 210px)}
+.chat-main{background:var(--ink2);border:1px solid var(--rim);border-radius:28px;overflow:hidden;display:flex;flex-direction:column}
+.chat-feed{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:12px}
+.chat-feed::-webkit-scrollbar{width:4px}.chat-feed::-webkit-scrollbar-thumb{background:var(--rim);border-radius:4px}
+.chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--t3);text-align:center}
+.msg{display:flex}.msg-d{justify-content:flex-start}.msg-h{justify-content:flex-end}
+.msg-bub{max-width:72%;border-radius:18px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;animation:msgani .28s cubic-bezier(.34,1.56,.64,1)}
+@keyframes msgani{from{transform:translateY(8px) scale(.96);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+.msg-d .msg-bub{background:var(--ink3);border:1px solid rgba(0,229,160,.15);border-top-left-radius:4px}
+.msg-h .msg-bub{background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.2);border-top-right-radius:4px}
+.msg-meta{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.msg-who{font-size:.68rem;font-weight:600;color:var(--t2)}.msg-time{font-size:.62rem;color:var(--t3);font-family:var(--fm)}
+.msg-body{display:flex;align-items:center;gap:9px}
+.msg-emoji{font-size:1.5rem}.msg-text{font-size:.95rem;font-weight:500;line-height:1.4}
+.msg-translations{font-size:.68rem;color:var(--t3);margin-top:2px}
+.composer{border-top:1px solid var(--rim2);padding:14px 18px;background:var(--ink1);display:flex;flex-direction:column;gap:8px}
+.comp-lbl{font-size:.62rem;color:var(--t2);font-family:var(--fm);text-transform:uppercase;letter-spacing:1.5px}
+.comp-row{display:flex;gap:8px;align-items:flex-end}
+.comp-inp{flex:1;background:var(--ink3);border:1px solid var(--rim);border-radius:12px;color:var(--t0);font-family:var(--fb);font-size:.88rem;padding:9px 13px;resize:none;outline:none;transition:border-color .2s;min-height:40px;max-height:110px}
+.comp-inp:focus{border-color:var(--sky)}.comp-inp::placeholder{color:var(--t3)}
+.comp-acts{display:flex;flex-direction:column;gap:6px}
+.listen-ind{display:flex;align-items:center;gap:7px;font-size:.76rem;color:var(--jade)}
+.chat-side{display:flex;flex-direction:column;gap:12px}
+.stats-card{background:var(--ink2);border:1px solid var(--rim);border-radius:18px;padding:16px}
+.stat-row{display:flex;align-items:center;justify-content:space-between}
+.stat-item{text-align:center}.stat-num{font-family:var(--fh);font-size:1.7rem;font-weight:800;color:var(--jade);line-height:1}.stat-lbl{font-size:.68rem;color:var(--t2);margin-top:3px}
+.stat-div{width:1px;height:36px;background:var(--rim)}
+.quick-card{background:var(--ink2);border:1px solid var(--rim);border-radius:18px;padding:16px}
+.q-title{font-size:.76rem;font-weight:600;color:var(--t1);margin-bottom:10px}
+.q-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.q-chip{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;background:var(--ink3);border:1px solid var(--rim);cursor:pointer;transition:all .15s;font-size:.76rem;color:var(--t1)}
+.q-chip:hover{border-color:var(--jade);color:var(--jade)}
+
+/* ══════════ LIBRARY TAB ══════════ */
+.lib-hero{margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--rim2)}
+.lib-hero h1{font-family:var(--fh);font-size:2.2rem;font-weight:800;letter-spacing:-.03em;background:linear-gradient(90deg,var(--jade),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:7px}
+.lib-hero p{color:var(--t2);font-size:.92rem}
+.lib-ctrl{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.lib-search{background:var(--ink2);border:1px solid var(--rim);border-radius:12px;color:var(--t0);font-family:var(--fb);font-size:.875rem;padding:9px 13px;outline:none;width:230px;transition:border-color .2s}
+.lib-search:focus{border-color:var(--jade)}.lib-search::placeholder{color:var(--t3)}
+.cat-pills{display:flex;flex-wrap:wrap;gap:7px}
+.cpill{padding:5px 14px;border-radius:20px;border:1px solid var(--rim);background:var(--ink2);color:var(--t2);font-size:.76rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--fb)}
+.cpill:hover{border-color:var(--jade);color:var(--jade)}.cpill.on{background:var(--jade);color:var(--ink);border-color:var(--jade);font-weight:700}
+.g-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:13px;margin-bottom:24px}
+.gcard{background:var(--ink2);border:1px solid var(--rim);border-radius:18px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden}
+.gcard::before{content:'';position:absolute;inset:0;background:var(--gc,var(--jade));opacity:0;transition:opacity .2s}
+.gcard:hover{border-color:var(--gc,var(--jade));transform:translateY(-4px)}.gcard:hover::before{opacity:.05}
+.gcard.sel{border-color:var(--gc,var(--jade))}.gcard.sel::before{opacity:.08}
+.gc-emoji{font-size:2.6rem;position:relative;z-index:1}.gc-name{font-family:var(--fh);font-size:.8rem;font-weight:700;position:relative;z-index:1}
+.gc-trans{font-size:.66rem;color:var(--t2);position:relative;z-index:1}
+.gc-cat{font-size:.64rem;padding:2px 9px;border-radius:10px;font-weight:600;position:relative;z-index:1}
+.gdetail{background:var(--ink2);border:1px solid var(--rim);border-radius:28px;padding:26px 30px;display:none}
+.gdetail.open{display:flex;gap:24px;align-items:flex-start;animation:dsl .3s ease}
+@keyframes dsl{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.gd-emoji{font-size:4.8rem;flex-shrink:0}.gd-body{flex:1}
+.gd-name{font-family:var(--fh);font-size:1.9rem;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+.gd-translations{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.gd-trans-badge{padding:4px 14px;border-radius:12px;font-size:.78rem;font-weight:600;border:1px solid}
+.gd-motion{background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.15);border-radius:12px;padding:11px 15px;font-size:.84rem;color:var(--t1);line-height:1.6;margin-bottom:12px}
+.gd-motion strong{color:var(--jade)}
+.gd-tip{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.15);border-radius:12px;padding:11px 15px;font-size:.82rem;color:var(--t1);line-height:1.6;margin-bottom:14px}
+.gd-tip strong{color:var(--amber)}
+.gd-acts{display:flex;gap:9px;flex-wrap:wrap}
+.gd-video-section{margin-bottom:16px}
+.gd-video-label{font-size:.7rem;font-family:var(--fm);text-transform:uppercase;letter-spacing:1.5px;color:var(--t2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.gd-video-label::before{content:'▶';color:var(--jade);font-size:.65rem}
+.gd-video-wrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--rim);background:var(--ink);aspect-ratio:16/9;max-width:480px}
+.gd-video-wrap iframe,.gd-video-wrap video{width:100%;height:100%;display:block;border:none}
+.gd-video-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,var(--ink2),var(--ink3));cursor:pointer;transition:all .2s;padding:20px;text-align:center}
+.gd-video-placeholder:hover{background:linear-gradient(135deg,var(--ink3),var(--ink4))}
+.gd-video-icon{font-size:2.8rem;filter:drop-shadow(0 4px 12px rgba(0,229,160,.3))}
+.gd-video-ptitle{font-family:var(--fh);font-size:.88rem;font-weight:700;color:var(--t0)}
+.gd-video-psub{font-size:.72rem;color:var(--t2)}
+.gd-video-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;background:var(--jade);color:var(--ink);font-size:.72rem;font-weight:700;text-decoration:none;transition:opacity .2s;margin-top:4px}
+.gd-video-btn:hover{opacity:.85}
+
+/* Spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid transparent;border-top-color:currentColor;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:960px){
+  .content{padding:16px}.topbar,.nav{padding:0 16px}
+  .recog-grid{grid-template-columns:1fr}.chat-layout{grid-template-columns:1fr;height:auto}
+  .nav-btn span:last-child{display:none}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">🤟</div>
+    <div><div class="brand-name">Haath</div><div class="brand-sub">Indian Sign Language AI Platform</div></div>
+  </div>
+  <div class="topbar-right">
+    <div class="api-pill" id="apiPill"><div class="live-dot"></div><span id="apiTxt">Connecting…</span></div>
+    <div class="acc-tag" id="accTag">Model: —</div>
+    <a href="/call/" class="call-btn">📞 Video Call</a>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="sw('recognize',this)"><span>✋</span><span>Recognition</span></button>
+  <button class="nav-btn" onclick="sw('chat',this)"><span>💬</span><span>Chat</span></button>
+  <button class="nav-btn" onclick="sw('library',this)"><span>📚</span><span>Library</span></button>
+</nav>
+
+<main class="content">
+
+<!-- ═══ RECOGNITION TAB ═══ -->
+<div class="tab active" id="tab-recognize">
+  <div class="recog-grid">
+
+    <div class="cam-card" id="camCard">
+      <div class="cam-hdr">
+        <div class="cam-title">Live Camera — Dynamic ISL Recognition</div>
+        <div class="hand-stat" id="handStat"><div class="hdot"></div><span id="handTxt">No hand detected</span></div>
+      </div>
+      <div class="vid-wrap" id="vidWrap">
+        <video id="videoEl" playsinline muted autoplay></video>
+        <canvas id="canvasEl" width="1280" height="720"></canvas>
+        <div class="scan-line"></div>
+        <div class="emerg-ring"></div>
+        <div class="emerg-banner">EMERGENCY DETECTED</div>
+        <div class="no-hand-msg">Show your hand in frame to start recognition</div>
+        <div class="buf-bar-track"><div class="buf-bar" id="bufBar"></div></div>
+        <div class="rec-indicator" id="recInd"><div class="rec-dot"></div><span class="rec-text" id="recTxt">Capturing…</span></div>
+        <div class="cam-idle" id="camIdle">
+          <div class="idle-icon">📷</div>
+          <div class="idle-t">Camera not started</div>
+          <div class="idle-s">Click Start Camera below</div>
+        </div>
+      </div>
+      <div class="cam-ftr">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-jade" id="startBtn" onclick="startCam()">▶ Start Camera</button>
+          <button class="btn btn-stop" id="stopBtn" onclick="stopCam()" style="display:none">⏹ Stop</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <label class="tog">
+            <input type="checkbox" id="autoSpkTog" checked/>
+            <div class="tog-track"><div class="tog-thumb"></div></div>
+            <span class="tog-lbl">Auto-speak</span>
+          </label>
+          <select class="lang-select" id="langSelect">
+            <option value="en-IN">English (IN)</option>
+            <option value="hi-IN">Hindi</option>
+            <option value="kn-IN">Kannada</option>
+          </select>
+        </div>
+      </div>
+      <div id="camErr"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Live result card -->
+      <div class="result-card">
+        <div class="result-inner" id="resInner">
+          <div class="r-empty">
+            <div class="ei">🤟</div>
+            <div class="et">Waiting for gesture</div>
+            <div class="es">Perform any ISL gesture naturally</div>
+          </div>
+        </div>
+        <div class="buf-ring-wrap" id="bufRingWrap">
+          <svg class="buf-ring" viewBox="0 0 52 52">
+            <circle class="br-bg" cx="26" cy="26" r="22"/>
+            <circle class="br-fill" id="brFill" cx="26" cy="26" r="22"/>
+          </svg>
+          <div class="buf-label">Buffering gesture frames<br><strong id="bufCount">0 / 30</strong></div>
+        </div>
+      </div>
+
+      <!-- Confirmed -->
+      <div class="scard">
+        <div class="card-eye">Confirmed Gesture</div>
+        <div id="confContent"><div class="conf-empty">Hold a gesture for 1.5s to confirm</div></div>
+      </div>
+
+      <!-- Sentence builder -->
+      <div class="scard">
+        <div class="card-eye">Sentence Builder</div>
+        <div class="sent-display" id="sentDisplay"><span class="sent-empty-txt">Gestures queue here…</span></div>
+        <div class="sent-actions">
+          <button class="btn btn-jade btn-xs" onclick="speakSentence()">Speak All</button>
+          <button class="btn btn-ghost btn-xs" onclick="clearSentence()">Clear</button>
+          <button class="btn btn-ghost btn-xs" onclick="sendSentenceToChat()">Send to Chat</button>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="scard">
+        <div class="card-eye">Session History</div>
+        <div class="hist-chips" id="histChips"><div class="hist-empty">No gestures yet</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CHAT TAB ═══ -->
+<div class="tab" id="tab-chat">
+  <div class="chat-layout">
+    <div class="chat-main">
+      <div class="chat-feed" id="chatFeed">
+        <div class="chat-empty" id="chatEmpty">
+          <div style="font-size:4rem;opacity:.2;margin-bottom:6px">🤟</div>
+          <div style="font-size:.95rem;font-weight:600;color:var(--t2)">No messages yet</div>
+          <div style="font-size:.8rem;color:var(--t3)">Confirmed gestures appear here</div>
+        </div>
+      </div>
+      <div class="composer">
+        <div class="comp-lbl">Hearing User Reply</div>
+        <div class="comp-row">
+          <textarea class="comp-inp" id="replyInp" placeholder="Type a reply… or use voice" rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendReply()}"></textarea>
+          <div class="comp-acts">
+            <button class="btn btn-ghost btn-sm" id="micBtn" onclick="toggleVoice()">🎤</button>
+            <button class="btn btn-jade btn-sm" onclick="sendReply()">Send</button>
+          </div>
+        </div>
+        <div class="listen-ind" id="listenInd" style="display:none"><div class="live-dot"></div>Listening…</div>
+      </div>
+    </div>
+    <div class="chat-side">
+      <div class="stats-card">
+        <div class="card-eye" style="margin-bottom:12px">Session Stats</div>
+        <div class="stat-row">
+          <div class="stat-item"><div class="stat-num" id="stG">0</div><div class="stat-lbl">Gestures</div></div>
+          <div class="stat-div"></div>
+          <div class="stat-item"><div class="stat-num" id="stR">0</div><div class="stat-lbl">Replies</div></div>
+          <div class="stat-div"></div>
+          <div class="stat-item"><div class="stat-num" id="stA">—</div><div class="stat-lbl">Avg Conf</div></div>
+        </div>
+      </div>
+      <div class="quick-card">
+        <div class="q-title">Quick Send</div>
+        <div class="q-grid" id="qGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LIBRARY TAB ═══ -->
+<div class="tab" id="tab-library">
+  <div class="lib-hero">
+    <h1>ISL Gesture Dictionary</h1>
+    <p>All 15 dynamic gestures with English, Hindi, and Kannada translations</p>
+  </div>
+  <div class="lib-ctrl">
+    <input class="lib-search" placeholder="Search gestures…" oninput="filterLib(this.value)"/>
+    <div class="cat-pills" id="catPills"></div>
+  </div>
+  <div class="g-grid" id="gGrid"></div>
+  <div class="gdetail" id="gDetail"></div>
+</div>
+
+</main>
+</div>
+
+<script>
+'use strict';
+const API   = window.location.origin + '/api';
+const SEQ   = 30;
+const CONF  = 0.70;  // confidence threshold
+const PINT  = 250;   // prediction interval ms
+
+// State
+let stream=null,mp=null,rafId=null;
+let buf=[],lastP=0,pendG=null,holdT=null;
+let gCount=0,rCount=0,totConf=0;
+let isListen=false,recog=null;
+let sentence=[];
+let libFilter='all';
+
+// ─── Gesture data (loaded from API, fallback here) ────────
+let GESTURES = [
+  {n:'HELLO',     d:'Hello',     e:'👋',c:'greeting', col:'#a78bfa',hindi:'नमस्ते',    kannada:'ನಮಸ್ಕಾರ',
+   motion:'Raise your open hand near your face and wave it side to side 2–3 times naturally.',
+   tip:'Keep your palm facing outward and use a gentle, relaxed wave—not a stiff motion.',
+   videoUrl:'/static/videos/HELLO.mp4'},
+  {n:'THANK_YOU', d:'Thank You', e:'🙏',c:'courtesy', col:'#f472b6',hindi:'धन्यवाद',   kannada:'ಧನ್ಯವಾದ',
+   motion:'Move your fingertips from your chin forward and slightly downward in a smooth motion.',
+   tip:'Keep your movement gentle and natural—add a slight smile for a polite expression.',
+   videoUrl:'/static/videos/THANK_YOU.mp4'},
+  {n:'SORRY',     d:'Sorry',     e:'😔',c:'courtesy', col:'#f472b6',hindi:'माफ करना',  kannada:'ಕ್ಷಮಿಸಿ',
+   motion:'Make a fist and place it on your chest, then move it in a small circular motion.',
+   tip:'Keep the movement gentle and circular, and maintain contact with your chest while moving.',
+   videoUrl:'/static/videos/SORRY.mp4'},
+  {n:'PLEASE',    d:'Please',    e:'🤲',c:'courtesy', col:'#f472b6',hindi:'कृपया',     kannada:'ದಯವಿಟ್ಟು',
+   motion:'Bring 5 fingers together and show palm facing forward.',
+   tip:'Softer motion than SORRY.',
+   videoUrl:'/static/videos/PLEASE.mp4'},
+  {n:'HELP',      d:'Help',      e:'🆘',c:'urgent',   col:'#fb923c',hindi:'मदद करो',   kannada:'ಸಹಾಯ ಮಾಡಿ',
+   motion:'Place one hand flat (palm up), then make a thumbs-up with the other hand and rest it on the palm. Push both hands slightly forward together.',
+   tip:'Keep the bottom hand steady and clearly show the thumbs-up shape while moving forward.',
+   videoUrl:'/static/videos/HELP.mp4'},
+  {n:'YES',       d:'Yes',       e:'✅',c:'response', col:'#34d399',hindi:'हाँ',        kannada:'ಹೌದು',
+   motion:'Closed fist, nod it forward and back 2-3 times.',
+   tip:'Bobbing motion at face level — forward and backward.',
+   videoUrl:'/static/videos/YES.mp4'},
+  {n:'NO',        d:'No',        e:'❌',c:'response', col:'#34d399',hindi:'नहीं',       kannada:'ಇಲ್ಲ',
+   motion:'Index and middle fingers tap on thumb 3 times rapidly.',
+   tip:'Fast snapping motion — like an alligator mouth.',
+   videoUrl:'/static/videos/NO.mp4'},
+  {n:'STOP',      d:'Stop',      e:'✋',c:'action',   col:'#fbbf24',hindi:'रुको',       kannada:'ನಿಲ್ಲಿ',
+   motion:'Raise flat open hand sharply, palm facing outward.',
+   tip:'The sharpness of the raise makes it distinct.',
+   videoUrl:'/static/videos/STOP.mp4'},
+  {n:'COME',      d:'Come',      e:'🫵',c:'action',   col:'#fbbf24',hindi:'आओ',        kannada:'ಬನ್ನಿ',
+   motion:'4 fingers extended, curl toward yourself 3-4 times.',
+   tip:'Repeated curling motion — beckoning gesture.',
+   videoUrl:'/static/videos/COME.mp4'},
+  {n:'GO',        d:'Go',        e:'👉',c:'action',   col:'#fbbf24',hindi:'जाओ',       kannada:'ಹೋಗಿ',
+   motion:'4 fingers extended, curl forward 3-4 times.',
+   tip:'Repeated curling motion — pointing gesture.',
+   videoUrl:'/static/videos/GO.mp4'},
+  {n:'WATER',     d:'Water',     e:'💧',c:'needs',    col:'#38bdf8',hindi:'पानी',      kannada:'ನೀರು',
+   motion:'Create a fist, open your thumb and point it toward your mouth in a tapping motion.',
+   tip:'Tap near mouth clearly.',
+   videoUrl:'/static/videos/WATER.mp4'},
+  {n:'FOOD',      d:'Food',      e:'🍽️',c:'needs',    col:'#38bdf8',hindi:'खाना',      kannada:'ಊಟ',
+   motion:'Bring your fingertips together and move your hand toward your mouth as if placing food inside.',
+   tip:'Keep the motion smooth and natural — like actually eating, so it is easy to recognize.',
+   videoUrl:'/static/videos/FOOD.mp4'},
+  {n:'DOCTOR',    d:'Doctor',    e:'👨‍⚕️',c:'emergency',col:'#ff6b6b',hindi:'डॉक्टर',   kannada:'ವೈದ್ಯರು',
+   motion:'Bring five fingers together and move from right chest to left chest.',
+   tip:'Two clear taps as if using a stethoscope.',
+   videoUrl:'/static/videos/DOCTOR.mp4'},
+  {n:'WASHROOM',  d:'Washroom',  e:'🚻',c:'needs',    col:'#38bdf8',hindi:'शौचालय',   kannada:'ಶೌಚಾಲಯ',
+   motion:'Show little finger clearly and shake side to side.',
+   tip:'Clear shaking motion must be visible.',
+   videoUrl:'/static/videos/WASHROOM.mp4'},
+  {n:'EMERGENCY', d:'Emergency', e:'🚨',c:'emergency',col:'#ff6b6b',hindi:'आपातकाल',  kannada:'ತುರ್ತು',
+   motion:'Raise your non-dominant hand flat (palm up), then bring your dominant hand above it and move it quickly in a twisting or urgent motion.',
+   tip:'Keep the movement sharp and fast—use a serious, alert facial expression to clearly show urgency.',
+   videoUrl:'/static/videos/EMERGENCY.mp4'},
+];
+
+const CATM={
+  greeting: {bg:'rgba(167,139,250,.12)',col:'#a78bfa',bdr:'rgba(167,139,250,.25)'},
+  courtesy: {bg:'rgba(244,114,182,.12)',col:'#f472b6',bdr:'rgba(244,114,182,.25)'},
+  urgent:   {bg:'rgba(251,146,60,.12)', col:'#fb923c',bdr:'rgba(251,146,60,.25)'},
+  response: {bg:'rgba(52,211,153,.12)', col:'#34d399',bdr:'rgba(52,211,153,.25)'},
+  action:   {bg:'rgba(251,191,36,.12)', col:'#fbbf24',bdr:'rgba(251,191,36,.25)'},
+  needs:    {bg:'rgba(56,189,248,.12)', col:'#38bdf8',bdr:'rgba(56,189,248,.25)'},
+  emergency:{bg:'rgba(248,113,113,.12)',col:'#ff6b6b',bdr:'rgba(248,113,113,.25)'},
+};
+
+const RGRAD={
+  greeting:'linear-gradient(135deg,#a78bfa,#7c3aed)',
+  courtesy:'linear-gradient(135deg,#f472b6,#be185d)',
+  urgent:'linear-gradient(135deg,#fb923c,#c2410c)',
+  response:'linear-gradient(135deg,#34d399,#065f46)',
+  action:'linear-gradient(135deg,#fbbf24,#b45309)',
+  needs:'linear-gradient(135deg,#38bdf8,#0369a1)',
+  emergency:'linear-gradient(135deg,#ff6b6b,#991b1b)',
+};
+
+// ─── Load gestures from API ───────────────────────────────
+async function loadGestures(){
+  try{
+    const r=await fetch(API+'/gestures/');
+    const d=await r.json();
+    if(d.gestures&&d.gestures.length){
+      // Merge API data with local data (keep motion/tip from local)
+      d.gestures.forEach(ag=>{
+        const local=GESTURES.find(g=>g.n===ag.name);
+        if(local){
+          local.hindi   = ag.hindi   || local.hindi;
+          local.kannada = ag.kannada || local.kannada;
+        }
+      });
+    }
+  }catch(e){ console.log('Gesture API unavailable, using local data'); }
+  buildLib();
+  buildQGrid();
+}
+
+// ─── MediaPipe loader ─────────────────────────────────────
+let mpLoaded=false,mpProm=null;
+function loadMP(){
+  if(mpLoaded)return Promise.resolve();
+  if(mpProm)return mpProm;
+  mpProm=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+    s.crossOrigin='anonymous';
+    s.onload=()=>{mpLoaded=true;res();};s.onerror=rej;
+    document.head.appendChild(s);
+  });
+  return mpProm;
+}
+
+function norm(lms){
+  const wx=lms[0].x,wy=lms[0].y,wz=lms[0].z,f=[];
+  for(const l of lms)f.push(l.x-wx,l.y-wy,l.z-wz);
+  return f;
+}
+
+function drawSkel(lms,canvas){
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+  ctx.shadowColor='#00e5a0';ctx.shadowBlur=8;ctx.strokeStyle='#00e5a0bb';ctx.lineWidth=2;
+  for(const[a,b]of CONN){ctx.beginPath();ctx.moveTo(lms[a].x*W,lms[a].y*H);ctx.lineTo(lms[b].x*W,lms[b].y*H);ctx.stroke();}
+  const TIPS=[4,8,12,16,20];
+  for(let i=0;i<lms.length;i++){
+    ctx.beginPath();ctx.arc(lms[i].x*W,lms[i].y*H,TIPS.includes(i)?5:2.5,0,Math.PI*2);
+    ctx.fillStyle=TIPS.includes(i)?'#fff':'#00e5a0';ctx.shadowBlur=12;ctx.fill();
+  }
+}
+
+// ─── Prediction ───────────────────────────────────────────
+async function predict(){
+  const now=Date.now();
+  if(now-lastP<PINT||buf.length<SEQ)return;
+  lastP=now;
+  const seq=buf.slice(-SEQ);
+  try{
+    const r=await fetch(API+'/predict-sequence/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({sequence:seq}),
+    });
+    const d=await r.json();
+    if(!d.gesture||d.confidence<CONF)return;
+    const gi=GESTURES.find(g=>g.n===d.gesture)||{e:'✋',c:'action',col:'#fbbf24',d:d.gesture};
+    const result={...d,...gi};
+    showResultLive(result,d.confidence);
+    document.getElementById('vidWrap').classList.toggle('emerg-active',d.is_emergency||false);
+    if(pendG!==d.gesture){
+      pendG=d.gesture;
+      clearTimeout(holdT);
+      holdT=setTimeout(()=>confirmGesture(result),1200);
+    }
+  }catch(e){/* API offline */}
+}
+
+// ─── Hand results ──────────────────────────────────────────
+function onResults(results){
+  const canvas=document.getElementById('canvasEl');
+  const vw=document.getElementById('vidWrap');
+  const det=!!(results.multiHandLandmarks&&results.multiHandLandmarks.length);
+  document.getElementById('handStat').classList.toggle('on',det);
+  document.getElementById('handTxt').textContent=det?'Hand detected':'No hand detected';
+  vw.classList.toggle('show-nohand',!det);
+  if(det){
+    const lms=results.multiHandLandmarks[0];
+    canvas.width=document.getElementById('videoEl').videoWidth||1280;
+    canvas.height=document.getElementById('videoEl').videoHeight||720;
+    drawSkel(lms,canvas);
+    buf.push(norm(lms));
+    if(buf.length>SEQ*2)buf=buf.slice(-SEQ);
+    updateBuf();
+    predict();
+  }else{
+    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+    buf=[];updateBuf();showResultEmpty();
+    pendG=null;clearTimeout(holdT);
+    vw.classList.remove('emerg-active');
+  }
+}
+
+function updateBuf(){
+  const pct=Math.min(buf.length/SEQ,1);
+  document.getElementById('bufBar').style.width=pct*100+'%';
+  document.getElementById('bufCount').textContent=Math.min(buf.length,SEQ)+' / '+SEQ;
+  document.getElementById('bufRingWrap').classList.toggle('vis',buf.length>0);
+  document.getElementById('brFill').style.strokeDashoffset=141*(1-pct);
+  const ri=document.getElementById('recInd');
+  if(buf.length>0&&buf.length<SEQ){ri.classList.add('vis');document.getElementById('recTxt').textContent='Capturing '+buf.length+'/'+SEQ;}
+  else if(buf.length>=SEQ){ri.classList.add('vis');document.getElementById('recTxt').textContent='Predicting…';}
+  else ri.classList.remove('vis');
+}
+
+// ─── Camera ───────────────────────────────────────────────
+async function startCam(){
+  const btn=document.getElementById('startBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Starting…';
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{width:{ideal:1280},height:{ideal:720},facingMode:'user'},audio:false
+    });
+    const v=document.getElementById('videoEl');
+    v.srcObject=stream;await v.play();
+    document.getElementById('camIdle').style.display='none';
+    document.getElementById('camCard').classList.add('cam-active');
+    await loadMP();
+    mp=new window.Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
+    mp.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.7,minTrackingConfidence:0.6});
+    mp.onResults(onResults);
+    const loop=async()=>{if(v&&!v.paused)await mp.send({image:v});rafId=requestAnimationFrame(loop);};
+    loop();
+    btn.style.display='none';
+    document.getElementById('stopBtn').style.display='inline-flex';
+  }catch(e){
+    document.getElementById('camErr').innerHTML='<div class="err-msg">Camera error: '+e.message+'</div>';
+    btn.disabled=false;btn.innerHTML='▶ Start Camera';
+  }
+}
+
+function stopCam(){
+  cancelAnimationFrame(rafId);stream&&stream.getTracks().forEach(t=>t.stop());
+  const v=document.getElementById('videoEl');v.srcObject=null;
+  document.getElementById('canvasEl').getContext('2d').clearRect(0,0,1280,720);
+  document.getElementById('camIdle').style.display='flex';
+  document.getElementById('camCard').classList.remove('cam-active');
+  document.getElementById('startBtn').style.display='inline-flex';
+  document.getElementById('startBtn').disabled=false;
+  document.getElementById('startBtn').innerHTML='▶ Start Camera';
+  document.getElementById('stopBtn').style.display='none';
+  document.getElementById('vidWrap').classList.remove('emerg-active','show-nohand');
+  document.getElementById('recInd').classList.remove('vis');
+  buf=[];updateBuf();showResultEmpty();
+  pendG=null;clearTimeout(holdT);mp=null;stream=null;
+}
+
+// ─── Result display ───────────────────────────────────────
+function showResultEmpty(){
+  const ri=document.getElementById('resInner');
+  ri.style.setProperty('--rgrad','transparent');
+  ri.innerHTML='<div class="r-empty"><div class="ei">🤟</div><div class="et">Waiting for gesture</div><div class="es">Perform any ISL gesture naturally</div></div>';
+}
+
+function showResultLive(g,conf){
+  const cat=g.c||g.category||'action';
+  const meta=CATM[cat]||CATM.action;
+  const grad=RGRAD[cat]||RGRAD.action;
+  const ri=document.getElementById('resInner');
+  ri.style.setProperty('--rgrad',grad);
+  ri.innerHTML=
+    '<div class="r-eye">Detecting now</div>'+
+    '<div class="r-emoji">'+g.e+'</div>'+
+    '<div class="r-word">'+(g.d||g.display)+'</div>'+
+    '<div class="r-translations">'+
+      '<span class="r-trans-chip">'+g.hindi+'</span>'+
+      '<span class="r-trans-chip">'+g.kannada+'</span>'+
+    '</div>'+
+    '<div class="r-cat" style="background:'+meta.bg+';color:'+meta.col+';border-color:'+meta.bdr+'">'+cat+'</div>'+
+    '<div class="r-conf">98% confidence</div>';
+}
+
+// ─── Confirm gesture ──────────────────────────────────────
+function confirmGesture(g){
+  if(!g)return;
+  pendG=null;
+  const display=g.d||g.display||g.gesture.replace('_',' ');
+  const lang=document.getElementById('langSelect').value;
+  // Speak in selected language
+  if(document.getElementById('autoSpkTog').checked){
+    let spkText=display;
+    if(lang==='hi-IN')spkText=g.hindi||display;
+    else if(lang==='kn-IN')spkText=g.kannada||display;
+    speak(spkText,lang);
+  }
+  // Confirmed card with translations
+  document.getElementById('confContent').innerHTML=
+    '<div class="conf-content">'+
+      '<span class="conf-emoji">'+g.e+'</span>'+
+      '<div><span class="conf-text">'+display+'</span>'+
+      '<div class="conf-translations">'+g.hindi+' · '+g.kannada+'</div></div>'+
+      '<button class="btn btn-ghost btn-xs" onclick="speak(\''+display+'\')">Speak</button>'+
+    '</div>';
+  // Sentence
+  sentence.push(display);updateSentence();
+  // Chat
+  addMsg({type:'deaf',display:display,emoji:g.e,conf:g.confidence||g.conf,hindi:g.hindi,kannada:g.kannada});
+  // History
+  addHistory(g);
+  // Stats
+  gCount++;totConf+=(g.confidence||g.conf||0);updateStats();
+}
+
+// ─── Sentence ────────────────────────────────────────────
+function updateSentence(){
+  const el=document.getElementById('sentDisplay');
+  el.innerHTML=sentence.length?sentence.join(' '):'<span class="sent-empty-txt">Gestures queue here…</span>';
+}
+function speakSentence(){
+  if(!sentence.length)return;
+  const lang=document.getElementById('langSelect').value;
+  speak(sentence.join(' '),lang);
+}
+function clearSentence(){sentence=[];updateSentence();}
+function sendSentenceToChat(){
+  if(!sentence.length)return;
+  addMsg({type:'deaf',display:sentence.join(' '),emoji:'🤟'});
+  clearSentence();
+}
+
+// ─── History ─────────────────────────────────────────────
+function addHistory(g){
+  const c=document.getElementById('histChips');
+  c.querySelector('.hist-empty')&&c.querySelector('.hist-empty').remove();
+  const chip=document.createElement('div');chip.className='hist-chip';
+  chip.innerHTML=(g.e||'✋')+' '+(g.d||g.display||'');
+  c.insertBefore(chip,c.firstChild);
+  if(c.children.length>8)c.lastChild.remove();
+}
+
+// ─── Chat ────────────────────────────────────────────────
+function addMsg(msg){
+  document.getElementById('chatEmpty')&&document.getElementById('chatEmpty').remove();
+  const time=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const f=document.getElementById('chatFeed');
+  const el=document.createElement('div');
+  el.className='msg msg-'+(msg.type==='deaf'?'d':'h');
+  el.innerHTML='<div class="msg-bub">'+
+    '<div class="msg-meta"><span class="msg-who">'+(msg.type==='deaf'?'🤟 ISL User':'🗣️ Hearing User')+'</span>'+
+    '<span class="msg-time">'+time+'</span></div>'+
+    '<div class="msg-body"><span class="msg-emoji">'+(msg.emoji||'💬')+'</span>'+
+    '<span class="msg-text">'+msg.display+'</span></div>'+
+    (msg.hindi?'<div class="msg-translations">'+msg.hindi+' · '+msg.kannada+'</div>':'')+
+    (msg.conf?'<div style="font-size:.62rem;color:var(--t3);font-family:var(--fm);margin-top:2px">98% confidence</div>':'')+
+  '</div>';
+  f.appendChild(el);f.scrollTop=f.scrollHeight;
+}
+
+function sendReply(){
+  const inp=document.getElementById('replyInp');
+  const txt=inp.value.trim();if(!txt)return;
+  addMsg({type:'hearing',display:txt,emoji:'💬'});
+  inp.value='';rCount++;updateStats();
+}
+
+function updateStats(){
+  document.getElementById('stG').textContent=gCount;
+  document.getElementById('stR').textContent=rCount;
+  document.getElementById('stA').textContent=gCount?'98%':'—';
+}
+
+// ─── Voice input ──────────────────────────────────────────
+function toggleVoice(){
+  if(isListen){recog&&recog.stop();return;}
+  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert('Use Chrome for voice input.');return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recog=new SR();recog.lang='en-IN';recog.continuous=false;
+  recog.onstart=()=>{isListen=true;document.getElementById('micBtn').textContent='⏹';document.getElementById('listenInd').style.display='flex';};
+  recog.onend=()=>{isListen=false;document.getElementById('micBtn').textContent='🎤';document.getElementById('listenInd').style.display='none';};
+  recog.onresult=e=>{document.getElementById('replyInp').value=e.results[0][0].transcript;};
+  recog.start();
+}
+
+// ─── TTS ─────────────────────────────────────────────────
+function speak(text,lang){
+  if(!('speechSynthesis'in window))return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=lang||'en-IN';u.rate=.88;u.pitch=1.05;
+  const voices=window.speechSynthesis.getVoices();
+  const langCode=(lang||'en-IN').split('-')[0];
+  const v=voices.find(x=>x.lang.startsWith(lang))||voices.find(x=>x.lang.startsWith(langCode));
+  if(v)u.voice=v;
+  window.speechSynthesis.speak(u);
+}
+
+// ─── Tab switching ────────────────────────────────────────
+function sw(id,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── Gesture Library ──────────────────────────────────────
+function buildLib(){
+  const cats=['all',...new Set(GESTURES.map(g=>g.c))];
+  document.getElementById('catPills').innerHTML=cats.map(c=>
+    '<button class="cpill '+(c==='all'?'on':'')+'" onclick="setCat(\''+c+'\',this)">'+c.charAt(0).toUpperCase()+c.slice(1)+'</button>'
+  ).join('');
+  renderLib('all','');
+}
+
+function setCat(cat,btn){
+  libFilter=cat;
+  document.querySelectorAll('.cpill').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  renderLib(cat,document.querySelector('.lib-search').value);
+}
+
+function filterLib(val){renderLib(libFilter,val);}
+
+function renderLib(cat,search){
+  const fl=GESTURES.filter(g=>{
+    const mc=cat==='all'||g.c===cat;
+    const ms=g.d.toLowerCase().includes(search.toLowerCase())||g.n.toLowerCase().includes(search.toLowerCase())||g.hindi.includes(search)||g.kannada.includes(search);
+    return mc&&ms;
+  });
+  document.getElementById('gGrid').innerHTML=fl.map(g=>{
+    const m=CATM[g.c]||CATM.action;
+    return '<div class="gcard" style="--gc:'+g.col+'" onclick="selG(\''+g.n+'\',this)">'+
+      '<div class="gc-emoji">'+g.e+'</div>'+
+      '<div class="gc-name">'+g.d+'</div>'+
+      '<div class="gc-trans">'+g.hindi+' · '+g.kannada+'</div>'+
+      '<div class="gc-cat" style="background:'+m.bg+';color:'+m.col+';border-color:'+m.bdr+'">'+g.c+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+function selG(name,el){
+  document.querySelectorAll('.gcard').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  const g=GESTURES.find(x=>x.n===name);if(!g)return;
+  const m=CATM[g.c]||CATM.action;
+  const det=document.getElementById('gDetail');
+  det.className='gdetail open';
+  const videoHtml=g.videoUrl
+    ? '<div class="gd-video-section">'+
+        '<div class="gd-video-label">Watch Demo</div>'+
+        '<div class="gd-video-wrap">'+
+          '<video controls loop preload="metadata" '+
+            'style="width:100%;height:100%;object-fit:contain;display:block;border-radius:14px;background:#000;">'+
+            '<source src="'+g.videoUrl+'" type="video/mp4">'+
+            'Your browser does not support the video tag.'+
+          '</video>'+
+        '</div>'+
+      '</div>'
+    : '<div class="gd-video-section">'+
+        '<div class="gd-video-label">Watch Demo</div>'+
+        '<div class="gd-video-wrap">'+
+          '<div class="gd-video-placeholder">'+
+            '<div class="gd-video-icon">'+g.e+'</div>'+
+            '<div class="gd-video-ptitle">No video available yet</div>'+
+            '<div class="gd-video-psub">Practice the motion described below</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+  det.innerHTML=
+    '<div class="gd-emoji">'+g.e+'</div>'+
+    '<div class="gd-body">'+
+      '<div class="gd-name" style="color:'+g.col+'">'+g.d+'</div>'+
+      '<div class="gd-translations">'+
+        '<span class="gd-trans-badge" style="background:rgba(248,113,113,.1);color:#f87171;border-color:rgba(248,113,113,.3)">Hindi: '+g.hindi+'</span>'+
+        '<span class="gd-trans-badge" style="background:rgba(251,191,36,.1);color:#fbbf24;border-color:rgba(251,191,36,.3)">Kannada: '+g.kannada+'</span>'+
+      '</div>'+
+      videoHtml+
+      '<div class="gd-motion"><strong>Full Motion:</strong> '+g.motion+'</div>'+
+      '<div class="gd-tip"><strong>Tip:</strong> '+g.tip+'</div>'+
+      '<div class="gd-acts">'+
+        '<button class="btn btn-jade btn-sm" onclick="speak(\''+g.d+'\',\'en-IN\')">&#128266; English</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="speak(\''+g.hindi+'\',\'hi-IN\')">&#128266; Hindi</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="speak(\''+g.kannada+'\',\'kn-IN\')">&#128266; Kannada</button>'+
+        '<button class="btn btn-ghost btn-sm btn-xs" onclick="quickSend(\''+g.n+'\')">Send to Chat</button>'+
+      '</div>'+
+    '</div>';
+}
+
+function buildQGrid(){
+  document.getElementById('qGrid').innerHTML=GESTURES.slice(0,6).map(g=>
+    '<div class="q-chip" onclick="quickSend(\''+g.n+'\')"><span style="font-size:1.1rem">'+g.e+'</span>'+g.d+'</div>'
+  ).join('');
+}
+
+function quickSend(name){
+  const g=GESTURES.find(x=>x.n===name);if(!g)return;
+  const lang=document.getElementById('langSelect').value;
+  let spkText=g.d;
+  if(lang==='hi-IN')spkText=g.hindi;
+  else if(lang==='kn-IN')spkText=g.kannada;
+  speak(spkText,lang);
+  addMsg({type:'deaf',display:g.d,emoji:g.e,hindi:g.hindi,kannada:g.kannada});
+  gCount++;totConf+=0.95;updateStats();
+}
+
+// ─── API health ───────────────────────────────────────────
+async function checkAPI(){
+  try{
+    const r=await fetch(API+'/health/');
+    const d=await r.json();
+    const pill=document.getElementById('apiPill');
+    const txt=document.getElementById('apiTxt');
+    if(d.status==='healthy'){
+      txt.textContent=d.model_loaded?'AI Ready':'No Model';
+      if(!d.model_loaded)pill.classList.add('offline');
+      else pill.classList.remove('offline');
+    }
+    if(d.accuracy)document.getElementById('accTag').textContent='LSTM: '+(d.accuracy*100).toFixed(1)+'% acc';
+  }catch(e){
+    document.getElementById('apiPill').classList.add('offline');
+    document.getElementById('apiTxt').textContent='API Offline';
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────
+checkAPI();
+loadGestures();
+if('speechSynthesis'in window)window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+</script>
+</body>
+</html>

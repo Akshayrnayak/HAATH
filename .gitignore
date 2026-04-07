@@ -1,0 +1,12 @@
+node_modules/
+myenv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+.env
+dataset/
+android/app/build/
+android/app/src/main/assets/public/
+.DS_Store

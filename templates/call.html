@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Haath Call — Sign Language Video Communication</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#040810;--ink1:#080f1c;--ink2:#0d1624;--ink3:#131f30;--ink4:#1a2840;
+  --rim:#1e3050;--rim2:#162440;
+  --jade:#00e5a0;--jade2:rgba(0,229,160,.1);--jglow:0 0 32px rgba(0,229,160,.2);
+  --sky:#38bdf8;--coral:#f87171;--amber:#fbbf24;--violet:#c084fc;--pink:#f472b6;
+  --t0:#f1f5ff;--t1:#a8bcd8;--t2:#4a6080;--t3:#253040;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fb);background:var(--ink);color:var(--t0);min-height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── Layout ── */
+.app-shell{display:flex;flex-direction:column;height:100vh;position:relative}
+.header{width:100%;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(4,8,16,.85);border-bottom:1px solid var(--rim);backdrop-filter:blur(20px);z-index:100}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand-mark{width:34px;height:34px;background:linear-gradient(135deg,var(--jade),var(--sky));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:var(--jglow)}
+.brand-name{font-family:var(--fh);font-size:1.15rem;font-weight:800;background:linear-gradient(90deg,var(--jade),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+.meta-zone{display:flex;align-items:center;gap:16px}
+.room-pill{display:flex;align-items:center;gap:8px;padding:5px 14px;background:var(--ink3);border:1px solid var(--rim);border-radius:20px;font-family:var(--fm);font-size:.72rem;color:var(--jade)}
+.status-pill{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--t2);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.dot.live{background:var(--jade);animation:pulse 1.5s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,229,160,.6)}70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+
+/* ── Video Grid ── */
+.main-stage{flex:1;display:flex;overflow:hidden;background:var(--ink)}
+.video-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px;position:relative;transition:all .6s cubic-bezier(.16,1,.3,1)}
+.video-pane{position:relative;background:var(--ink1);overflow:hidden}
+.video-pane video{width:100%;height:100%;object-fit:cover;display:block}
+#localVideo{transform:scaleX(-1)}
+.pane-label{position:absolute;bottom:20px;left:20px;z-index:10;display:flex;flex-direction:column;gap:8px}
+.pane-tag{background:rgba(4,8,16,.65);backdrop-filter:blur(12px);padding:6px 14px;border-radius:10px;font-family:var(--fh);font-size:.78rem;font-weight:700;color:var(--t0);border:1px solid rgba(255,255,255,.08)}
+.gesture-pill{display:none;align-items:center;gap:8px;background:var(--jade);color:var(--ink);padding:6px 16px;border-radius:10px;font-weight:800;font-size:.85rem;box-shadow:var(--jglow);animation:pop .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ── Overlays ── */
+.overlay{position:absolute;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;padding:24px;transition:all .5s ease}
+.glass-card{background:rgba(13,22,36,.75);backdrop-filter:blur(32px);border:1px solid rgba(255,255,255,.12);border-radius:32px;width:100%;max-width:440px;padding:40px;box-shadow:0 24px 80px rgba(0,0,0,0.5);text-align:center;animation:cardIn .6s cubic-bezier(.16,1,.3,1)}
+@keyframes cardIn{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.lobby-title{font-family:var(--fh);font-size:2rem;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,#fff,var(--t1));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.lobby-sub{font-size:.9rem;color:var(--t2);margin-bottom:32px}
+
+.form-group{margin-bottom:24px;text-align:left}
+.label{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin-bottom:8px;margin-left:4px}
+.input-wrap{position:relative}
+.input{width:100%;background:var(--ink4);border:1px solid var(--rim);border-radius:16px;padding:16px 20px;color:#fff;font-family:var(--fm);font-size:1.1rem;outline:none;transition:all .2s;text-align:center;letter-spacing:.2em}
+.input:focus{border-color:var(--jade);box-shadow:0 0 20px rgba(0,229,160,.15)}
+
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.btn{width:100%;padding:16px;border-radius:16px;border:none;cursor:pointer;font-family:var(--fb);font-size:.9rem;font-weight:700;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--jade);color:var(--ink);box-shadow:var(--jglow)}
+.btn-primary:hover{transform:translateY(-2px);opacity:.9}
+.btn-ghost{background:rgba(255,255,255,.04);color:var(--t1);border:1px solid var(--rim)}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:#fff}
+
+.waiting-ui{display:none;flex-direction:column;align-items:center}
+.loader-ring{width:80px;height:80px;border:3px solid var(--ink3);border-top-color:var(--jade);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.room-code-display{font-family:var(--fm);font-size:2.4rem;font-weight:700;color:var(--jade);letter-spacing:.1em;margin-bottom:12px}
+
+/* ── Subtitles ── */
+.subtitle-overlay {
+  position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: rgba(251, 191, 36, 0.98); color: #000; padding: 14px 28px;
+  border-radius: 24px; font-size: 1.3rem; font-weight: 800; z-index: 1000;
+  max-width: 85%; text-align: center; box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  border: 3px solid #b45309; opacity: 0; pointer-events: none; transition: all .3s cubic-bezier(.16,1,.3,1);
+}
+.subtitle-overlay.visible { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+.subtitle-overlay.interim { background: rgba(251,191,36,0.85); font-style: italic; border-style: dashed; }
+
+/* ── Controls ── */
+.toolbar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:12px 20px;background:rgba(13,22,36,.8);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.1);border-radius:24px;z-index:200;transition:all .3s ease}
+.tbtn{width:52px;height:52px;border-radius:18px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.04);color:var(--t1);font-size:1.2rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.tbtn:hover{background:rgba(255,255,255,.08);color:#fff;transform:translateY(-2px)}
+.tbtn.active{background:var(--jade2);color:var(--jade);border-color:rgba(0,229,160,.3)}
+.tbtn.danger{background:rgba(248,113,113,.1);color:var(--coral);border-color:rgba(248,113,113,.2)}
+.tbtn.danger:hover{background:var(--coral);color:#fff}
+.tbtn.cc-active{color:var(--amber);border-color:rgba(251,191,36,.4);animation:glow 2s infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,0.4)}50%{box-shadow:0 0 20px 4px rgba(251,191,36,0.2)}}
+
+/* ── Sidebar ── */
+.sidebar{width:320px;background:var(--ink1);border-left:1px solid var(--rim);display:flex;flex-direction:column;z-index:90}
+.chat-scroll{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
+.chat-scroll::-webkit-scrollbar{width:4px}.chat-scroll::-webkit-scrollbar-thumb{background:var(--rim)}
+.bubble{max-width:85%;padding:12px 16px;border-radius:16px;font-size:.85rem;line-height:1.5;position:relative;animation:pop .25s;}
+.bubble.mine{align-self:flex-end;background:var(--jade2);color:var(--jade);border:1px solid rgba(0,229,160,.1);border-bottom-right-radius:4px}
+.bubble.theirs{align-self:flex-start;background:var(--ink3);color:var(--t1);border:1px solid var(--rim);border-bottom-left-radius:4px}
+.bubble-meta{font-size:.62rem;opacity:.6;margin-top:6px;font-family:var(--fm)}
+
+.composition{padding:16px;border-top:1px solid var(--rim);background:var(--ink2)}
+.chat-input{width:100%;padding:12px 16px;background:var(--ink4);border:1px solid var(--rim);border-radius:12px;color:#fff;font-family:var(--fb);font-size:.85rem;outline:none;resize:none}
+
+/* ── States ── */
+body.in-lobby .video-grid{filter:blur(15px) grayscale(0.5);transform:scale(1.05)}
+body.in-call .overlay{opacity:0;pointer-events:none}
+body.in-call .video-grid{filter:none;transform:scale(1)}
+
+.hidden{display:none}
+</style>
+</head>
+<body class="in-lobby">
+
+<div class="app-shell">
+  <header class="header">
+    <a href="/" class="brand">
+      <div class="brand-mark">🤟</div>
+      <div class="brand-name">Haath Call</div>
+    </a>
+    <div class="meta-zone">
+      <div class="room-pill" id="roomPill" style="display:none">
+        <span style="opacity:0.6">ROOM:</span> <span id="headerRoomCode">——</span>
+      </div>
+      <div class="status-pill">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusText">Disconnected</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-stage">
+    <!-- Overlay System -->
+    <div class="overlay" id="overlayHost">
+      
+      <!-- Lobby Step 1: Join or Create -->
+      <div class="glass-card" id="lobbyUI">
+        <h1 class="lobby-title">Accessible Video</h1>
+        <p class="lobby-sub">Real-time Sign Language & Voice Subtitles</p>
+        
+        <div class="form-group">
+          <label class="label">Enter Room Code</label>
+          <div class="input-wrap">
+            <input type="text" class="input" id="roomInput" placeholder="000000" maxlength="6" autocomplete="off"/>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="handleJoin()">Join Existing Session</button>
+        
+        <div style="margin:24px 0;display:flex;align-items:center;gap:16px;color:var(--t3);font-size:.7rem;font-weight:700;text-transform:uppercase">
+          <div style="flex:1;height:1px;background:var(--rim)"></div>OR<div style="flex:1;height:1px;background:var(--rim)"></div>
+        </div>
+
+        <button class="btn btn-ghost" onclick="handleCreate()">Start New Session</button>
+      </div>
+
+      <!-- Lobby Step 2: Waiting -->
+      <div class="glass-card hidden" id="waitingUI">
+        <div class="loader-ring"></div>
+        <h2 style="font-family:var(--fh);font-size:1.4rem;margin-bottom:8px">Waiting for Peer</h2>
+        <p style="font-size:.85rem;color:var(--t2);margin-bottom:24px">Share this code with the person you want to call:</p>
+        <div class="room-code-display" id="displayCode">——</div>
+        <button class="btn btn-ghost btn-sm" onclick="copyCode()" style="margin-top:12px;font-size:.75rem">Copy to Clipboard</button>
+      </div>
+
+    </div>
+
+    <!-- Video Stage -->
+    <div class="video-grid" id="videoGrid">
+      <div class="video-pane" id="localPane">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <canvas id="skelCanvas" style="position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;z-index:20"></canvas>
+        <div class="pane-label">
+          <div class="gesture-pill" id="localGesture"></div>
+          <div class="pane-tag">You (ISL)</div>
+        </div>
+      </div>
+      <div class="video-pane" id="remotePane">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="subtitle-overlay" id="subOverlay"><div id="subText"></div></div>
+        <div class="pane-label">
+          <div class="gesture-pill" id="remoteGesture"></div>
+          <div class="pane-tag" id="remoteName">Remote User</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div style="padding:24px 20px;border-bottom:1px solid var(--rim);font-family:var(--fh);font-weight:800;font-size:.9rem;letter-spacing:.02em">TRANSLATION LOG</div>
+      <div class="chat-scroll" id="chatFeed"></div>
+      <div class="composition">
+        <textarea class="chat-input" id="chatInput" placeholder="Press Enter to send..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+      </div>
+    </div>
+  </main>
+
+  <!-- Controls Bar -->
+  <div class="toolbar" id="controls">
+    <button class="tbtn active" id="islBtn" onclick="toggleISL()" title="ISL Recognition">🤟</button>
+    <button class="tbtn" id="micBtn" onclick="toggleMic()" title="Microphone">🎤</button>
+    <button class="tbtn" id="camBtn" onclick="toggleCam()" title="Camera">📷</button>
+    <button class="tbtn" id="ccBtn" onclick="toggleCC()" oncontextmenu="event.preventDefault();cycleLang()" title="Voice Subtitles">CC</button>
+    <div style="width:1px;height:24px;background:var(--rim);margin:0 8px"></div>
+    <button class="tbtn danger" onclick="location.href='/'" title="End Call">🔚</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+const WS_BASE  = (location.protocol==='https:'?'wss:':'ws:') + '//' + location.host + '/ws/call/';
+const API_BASE = location.origin + '/api';
+const ICE      = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+let roomCode = null;
+let role = null; // 'host' or 'guest'
+let ws=null, pc=null, localStream=null, mp=null, rafId=null;
+let buf=[], lastPred=0, pendG=null, holdT=null;
+let islOn=true, micOn=true, camOn=true, ccOn=false, recog=null;
+let sttL = [{c:'en-IN',l:'EN-IN'},{c:'hi-IN',l:'HINDI'},{c:'en-US',l:'EN-US'}], sttI=0;
+
+// ── Room Management ──
+function handleCreate(){
+  roomCode = Math.random().toString(36).substring(2,8).toUpperCase();
+  enterWaiting();
+}
+function handleJoin(){
+  const val = document.getElementById('roomInput').value.trim().toUpperCase();
+  if(val.length < 6){ alert('Enter a 6-character code'); return; }
+  roomCode = val;
+  enterWaiting();
+}
+function enterWaiting(){
+  document.body.classList.remove('in-lobby');
+  document.getElementById('lobbyUI').classList.add('hidden');
+  document.getElementById('waitingUI').classList.remove('hidden');
+  document.getElementById('displayCode').textContent = roomCode;
+  document.getElementById('roomPill').style.display = 'flex';
+  document.getElementById('headerRoomCode').textContent = roomCode;
+  initMedia();
+}
+function copyCode(){
+  navigator.clipboard.writeText(roomCode);
+  alert('Room code copied: ' + roomCode);
+}
+
+// ── Media & WebRTTC ──
+async function initMedia(){
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    document.getElementById('localVideo').srcObject = localStream;
+    initWS();
+    initMediaPipe();
+  } catch(e) { alert('Microphone/Camera access required.'); }
+}
+
+function initWS(){
+  ws = new WebSocket(WS_BASE + roomCode + '/');
+  ws.onopen = () => { setStatus('Connected', true); };
+  ws.onmessage = async (e) => {
+    const data = JSON.parse(e.data);
+    if(data.type==='role'){
+      role = data.role;
+      if(role === 'guest'){
+        await startCall();
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        wsSend({type:'offer', sdp:offer.sdp});
+      }
+    } else if(data.type==='guest_joined'){
+      await startCall();
+    } else if(data.type==='offer'){
+      if(!pc) await startCall();
+      await pc.setRemoteDescription(new RTCSessionDescription({type:'offer', sdp:data.sdp}));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      wsSend({type:'answer', sdp:answer.sdp});
+    } else if(data.type==='answer'){
+      await pc.setRemoteDescription(new RTCSessionDescription({type:'answer', sdp:data.sdp}));
+    } else if(data.type==='candidate'){
+      if(!pc) await startCall();
+      await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+    } else if(data.type==='subtitle'){
+      relaySubtitle(data.text, data.isFinal);
+    } else if(data.type==='gesture'){
+      relayGuesture(data.gesture, data.emoji);
+    } else if(data.type==='peer_disconnected'){
+      location.reload();
+    }
+  };
+}
+
+async function startCall(){
+  document.body.classList.add('in-call');
+  if(!pc){
+    pc = new RTCPeerConnection(ICE);
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    pc.onicecandidate = (e) => { if(e.candidate) wsSend({type:'candidate', candidate:e.candidate}); };
+    pc.ontrack = (e) => { document.getElementById('remoteVideo').srcObject = e.streams[0]; };
+  }
+}
+
+function setStatus(t, l){ document.getElementById('statusText').textContent=t; document.getElementById('statusDot').classList.toggle('live', l); }
+function wsSend(m){ if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(m)); }
+
+// ── ISL Recognition ──
+function initMediaPipe(){
+  const script=document.createElement('script'); script.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+  script.onload=()=>{
+    mp=new window.Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    mp.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.7,minTrackingConfidence:0.6});
+    mp.onResults(onMPResults);
+    const v=document.getElementById('localVideo');
+    const loop=async()=>{ if(!v.paused && islOn) await mp.send({image:v}); rafId=requestAnimationFrame(loop); };
+    loop();
+  };
+  document.head.appendChild(script);
+}
+function onMPResults(res){
+  const c=document.getElementById('skelCanvas'); const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  if(res.multiHandLandmarks && res.multiHandLandmarks.length){
+    const lms=res.multiHandLandmarks[0]; drawSkel(lms,ctx,c.width,c.height);
+    buf.push(normalize(lms)); if(buf.length > 60) buf=buf.slice(-30);
+    if(buf.length>=30) doPredict();
+  } else { buf=[]; hideGestPill('local'); }
+}
+function normalize(lms){ const wx=lms[0].x,wy=lms[0].y,wz=lms[0].z,f=[]; for(const l of lms) f.push(l.x-wx,l.y-wy,l.z-wz); return f; }
+function drawSkel(lms,ctx,w,h){
+  ctx.strokeStyle='#00e5a0'; ctx.lineWidth=3; const C=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+  for(const[a,b]of C){ ctx.beginPath(); ctx.moveTo(lms[a].x*w,lms[a].y*h); ctx.lineTo(lms[b].x*w,lms[b].y*h); ctx.stroke(); }
+}
+async function doPredict(){
+  const now=Date.now(); if(now-lastPred<300) return; lastPred=now;
+  try{
+    const r=await fetch(API_BASE+'/predict-sequence/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sequence:buf.slice(-30)})});
+    const d=await r.json(); if(!d.gesture || d.confidence<0.75) return;
+    showGestPill('local', d.display, d.emoji);
+    if(pendG!==d.gesture){ pendG=d.gesture; clearTimeout(holdT); holdT=setTimeout(()=>{
+      addMsg('mine', `Signed: ${d.display} ${d.emoji}`);
+      wsSend({type:'gesture', gesture:d.display, emoji:d.emoji});
+    }, 1200); }
+  }catch(e){}
+}
+function showGestPill(side, t, e){ const p=document.getElementById(side+'Gesture'); p.innerHTML=`<span>${e}</span> ${t}`; p.style.display='flex'; }
+function hideGestPill(side){ document.getElementById(side+'Gesture').style.display='none'; }
+function relayGuesture(t, e){ showGestPill('remote', t, e); addMsg('theirs', `Signed: ${t} ${e}`); }
+
+// ── Subtitles ──
+function toggleCC(){
+  ccOn=!ccOn; document.getElementById('ccBtn').classList.toggle('cc-active', ccOn);
+  if(ccOn) startSTT(); else { if(recog) recog.stop(); }
+}
+function cycleLang(){ sttI=(sttI+1)%sttL.length; alert('Language: '+sttL[sttI].l); if(ccOn){ if(recog)recog.stop(); setTimeout(startSTT,200); } }
+function startSTT(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR) return;
+  recog=new SR(); recog.lang=sttL[sttI].c; recog.continuous=true; recog.interimResults=true;
+  recog.onresult=(e)=>{
+    let t=''; let f=false; for(let i=e.resultIndex;i<e.results.length;i++){ t+=e.results[i][0].transcript; if(e.results[i].isFinal)f=true; }
+    wsSend({type:'subtitle', text:t, isFinal:f});
+    if(f && t.trim()) addMsg('mine', `Spoken: ${t.trim()}`);
+  };
+  recog.onend=()=>{ if(ccOn) recog.start(); };
+  recog.start();
+}
+function relaySubtitle(t, f){
+  const o=document.getElementById('subOverlay'); const s=document.getElementById('subText');
+  s.textContent=t; o.classList.add('visible'); o.classList.toggle('interim', !f);
+  if(f && t.trim()) addMsg('theirs', `Spoken: ${t.trim()}`);
+  clearTimeout(window.subT); window.subT=setTimeout(()=>o.classList.remove('visible'), f?4000:2000);
+}
+
+// ── Chat ──
+function addMsg(s, t){
+  const f=document.getElementById('chatFeed'); const b=document.createElement('div');
+  b.className='bubble '+s; const tm=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  b.innerHTML=`<div class="msg-text">${t}</div><div class="bubble-meta">${tm}</div>`;
+  f.appendChild(b); f.scrollTop=f.scrollHeight;
+}
+function sendChat(){
+  const i=document.getElementById('chatInput'); const t=i.value.trim(); if(!t)return;
+  addMsg('mine', t); wsSend({type:'chat', text:t}); i.value='';
+}
+
+// ── Control Buttons ──
+function toggleISL(){ islOn=!islOn; document.getElementById('islBtn').classList.toggle('active', islOn); }
+function toggleMic(){ micOn=!micOn; localStream.getAudioTracks()[0].enabled=micOn; document.getElementById('micBtn').classList.toggle('active', !micOn); }
+function toggleCam(){ camOn=!camOn; localStream.getVideoTracks()[0].enabled=camOn; document.getElementById('camBtn').classList.toggle('active', !camOn); }
+</script>
+</body>
+</html>

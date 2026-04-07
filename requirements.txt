@@ -1,0 +1,36 @@
+# ============================================================
+#  HAATH — ISL Communication Platform
+#  Complete Requirements File
+#  Python 3.10 required (NOT 3.11, 3.12, or 3.13)
+# ============================================================
+ 
+# ── Django Core ──────────────────────────────────────────
+Django==4.2.9
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+ 
+# ── WebSocket / ASGI ─────────────────────────────────────
+channels==4.0.0
+daphne==4.0.0
+ 
+# ── AI / Machine Learning ────────────────────────────────
+tensorflow==2.15.0
+# Use tensorflow-cpu==2.15.0 instead if deploying to server (smaller size)
+ 
+# ── Computer Vision ──────────────────────────────────────
+mediapipe==0.10.30
+opencv-python==4.9.0.80
+ 
+# ── Data Science ─────────────────────────────────────────
+numpy==1.26.4
+scikit-learn==1.4.0
+pandas==2.2.0
+ 
+# ── SMS Alerts ───────────────────────────────────────────
+twilio==8.10.0
+ 
+# ── Utilities ────────────────────────────────────────────
+python-dotenv==1.0.0
+Pillow==10.2.0
+gunicorn==21.2.0
+whitenoise==6.6.0
